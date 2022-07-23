@@ -1,8 +1,6 @@
 import configparser
 from dataclasses import dataclass
 
-TG_TOKEN = "5422195989:AAFgwEpdmogZ2iyW1XqovAu5ly7rAkp1YzQ"
-db_url = 'postgresql+psycopg2://postgres:minesv123@localhost/postgres'
 
 @dataclass()
 class TgBot:

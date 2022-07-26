@@ -3,3 +3,9 @@ db.ini
 test.py
 venv
 .idea
+dbnavigator.xml
+__pycache__
+*/__pycache__
+*/*/__pycache__
+*/*/*/__pycache__
+*/*/*/*/__pycache__

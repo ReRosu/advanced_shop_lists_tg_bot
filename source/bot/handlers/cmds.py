@@ -12,8 +12,9 @@ from source.models.shoplist import AddShopListInDb
 # from source.db.repositories.friends import FriendsRep
 # from source.db.repositories.shopliststousers import SLStoUsersRep
 
+
 @dp.message_handler(commands=['start'])
 async def start(message: types.Message):
-    await message.answer('Привет, этот бот поможет сделать поход в магазины удобнее для тебя и твоих друзей.\n Введи '
-                         'команду /help чтобы увидеть что может бот')
+    await message.answer('''Привет, этот бот поможет сделать поход в магазины удобнее для тебя и твоих друзей.
+    \nВведи команду /help чтобы увидеть что может бот''')
 

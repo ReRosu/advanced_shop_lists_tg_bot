@@ -1,9 +1,8 @@
 bot.ini
 db.ini
 test.py
-venv
-.idea
-dbnavigator.xml
+venv/
+.idea/
 __pycache__
 */__pycache__
 */*/__pycache__

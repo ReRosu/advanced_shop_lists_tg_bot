@@ -3,7 +3,7 @@ from sqlalchemy import select, exists
 
 from source.db import tables
 from source.db.base import db
-from source.Models.shoplist import ShopListInDb, AddShopListInDb, UpdateShopListInDb
+from source.models.shoplist import ShopListInDb, AddShopListInDb, UpdateShopListInDb
 
 
 class ShopListsRep:

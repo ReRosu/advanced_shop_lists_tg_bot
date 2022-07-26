@@ -3,7 +3,7 @@ from sqlalchemy import select, exists
 
 from source.db import tables
 from source.db.base import db
-from source.Models.user import UserInDb, AddUserInDb
+from source.models.user import UserInDb, AddUserInDb
 
 
 class UsersRep:

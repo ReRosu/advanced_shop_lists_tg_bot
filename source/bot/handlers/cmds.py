@@ -12,9 +12,16 @@ from source.models.shoplist import AddShopListInDb
 # from source.db.repositories.friends import FriendsRep
 # from source.db.repositories.shopliststousers import SLStoUsersRep
 
-
-@dp.message_handler(commands=['start'])
+@dp.message_handler(commands=['start'], state="*")
 async def start(message: types.Message):
+    if not await UsersRep.by_id(message.from_user.id):
+        add_usr: AddUserInDb = AddUserInDb(id=message.from_user.id)
+        await UsersRep.add(add_usr)
     await message.answer('''Привет, этот бот поможет сделать поход в магазины удобнее для тебя и твоих друзей.
     \nВведи команду /help чтобы увидеть что может бот''')
+
+
+@dp.message_handler(commands=['help'], state='*')
+async def help(message: types.Message):
+    await message.reply('aboba')
 

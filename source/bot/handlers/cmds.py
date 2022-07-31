@@ -14,8 +14,8 @@ from source.db.repositories.friends import FriendsRep
 from source.db.repositories.shopliststousers import ShopListsToUsersRep
 
 
-#373740493
-#458183945
+# 373740493
+# 458183945
 
 @dp.message_handler(commands=['start'], state="*")
 async def start(message: types.Message):
@@ -44,7 +44,8 @@ async def get_my_id(msg: types.Message):
 
 @dp.message_handler(commands=['get_my_friends'])
 async def get_my_friends(msg: types.Message):
-    await msg.reply(f"Список ваших друзей, {msg.from_user.full_name}:\n" + '\n'.join(str(x) for x in await FriendsRep.all_friends_by_id(msg.from_user.id)))
+    await msg.reply(f"Список ваших друзей, {msg.from_user.full_name}:\n" + '\n'.join(
+        str(x) for x in await FriendsRep.all_friends_by_id(msg.from_user.id)))
 
 
 @dp.message_handler(commands=['watch_my_active_sls'])
@@ -69,12 +70,66 @@ async def create_shop_list(msg: types.Message):
 @dp.message_handler(state=CreateShopListStates.writing_shop_list)
 async def writing_shop_list(msg: types.Message, state=FSMContext):
     add_shop_list_in_db: AddShopListInDb = AddShopListInDb()
-    prepareted_msg = await jS.str_preparation(msg.text)
-    add_shop_list_in_db.shop_list = await jS.shop_list_to_json(prepareted_msg)
-    await msg.reply('В список покупок будут добавлены:\n' +
-                    '/n'.join([f"{t['name']} - {t['volume']}" for t in prepareted_msg]),
-                    reply_markup=await inline.accept_kb('sl'+str(msg.from_user.id)))
+    if msg.text[0] != '/':
+        prepareted_msg = await jS.str_preparation(msg.text)
+        add_shop_list_in_db.shop_list = await jS.shop_list_to_json(prepareted_msg)
+        await state.update_data(add_sl=add_shop_list_in_db)
+        await msg.reply('В список покупок будут добавлены:\n' +
+                        '/n'.join([f"{t['name']} - {t['volume']}" for t in prepareted_msg]),
+                        reply_markup=await inline.accept_kb())
 
 
+@dp.callback_query_handlers(text="accept", state=CreateShopListStates.writing_shop_list)
+async def accept_shop_list(msg: types.Message):
+    await msg.reply('Список покупок был сохранен.\n'
+                    'выберите друзей которым хотите дать разрешение просматривать и изменять список покупок',
+                    reply_markup=await inline.choosing_friend_to_add_to_sl())
+    await CreateShopListStates.next()
 
 
+@dp.callback_query_handlers(text="continue", state=CreateShopListStates.writing_shop_list)
+async def continue_writing_shop_list(msg:types.Message):
+    await create_shop_list(msg)
+
+
+@dp.callback_query_handlers(text='close', state=CreateShopListStates.writing_shop_list )
+async def close_writing_shop_list(msg: types.Message, state=FSMContext):
+    await msg.reply('Список покупок будет удален.')
+    await state.finish()
+
+
+@dp.message_handler(state=CreateShopListStates.adding_friends)
+async def adding_friends_to_shop_list(msg: types.Message, state=FSMContext):
+    data = await state.get_data()
+    if data.get('friends_to_add', False):
+        friends_to_add = data['friends_to_add']
+    else:
+        friends_to_add = []
+    if msg.text.isdigit() and UsersRep.id_exists(int(msg.text)):
+        friends_to_add.append(int(msg.text))
+
+    await state.update_data(friends_to_add=friends_to_add)
+
+
+@dp.callback_query_handlers(text="accept", state=CreateShopListStates.adding_friends)
+async def accept_friends_list(msg: types.Message):
+    await msg.reply('Друзья были прикреплены к списку.\n'
+                    'Дайте название списку',
+                    reply_markup=await inline.accept_kb())
+    await CreateShopListStates.next()
+
+
+@dp.callback_query_handlers(text="continue", state=CreateShopListStates.adding_friends)
+async def continue_writing_shop_list(msg:types.Message):
+    await accept_shop_list(msg)
+
+
+@dp.callback_query_handlers(text='close', state=CreateShopListStates.adding_friends)
+async def close_writing_shop_list(msg: types.Message, state=FSMContext):
+    await msg.reply('Список покупок будет удален.')
+    await state.finish()
+
+
+@dp.message_handler(state=CreateShopListStates.giving_name)
+async def giving_name(msg: types.Message):
+    pass

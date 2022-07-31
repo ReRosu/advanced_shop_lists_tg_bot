@@ -7,7 +7,7 @@ from aiogram.utils.executor import Executor
 
 from source.core.settings import load_bot_config
 
-bot_cfg = load_bot_config('bot/bot_config/bot.ini')
+bot_cfg = load_bot_config("bot/bot_config/bot.ini")
 bot_token = bot_cfg.tg_bot.token
 
 bot = Bot(token=bot_token, parse_mode=ParseMode.HTML)

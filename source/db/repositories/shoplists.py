@@ -44,7 +44,8 @@ class ShopListsRep:
             raise Exception('no data to update')
         if not ShopListsRep.id_exists(_id):
             raise Exception('no shop_list with this id')
-        q = tables.shop_lists.update().values(data_update).where(tables.shop_lists.c.id == _id).returning(tables.shop_lists)
+        q = tables.shop_lists.update().values(data_update).where(tables.shop_lists.c.id == _id).\
+            returning(tables.shop_lists)
         res = await db.fetch_one(q)
         return ShopListInDb.parse_obj(res) if res else None
 

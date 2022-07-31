@@ -11,6 +11,7 @@ async def set_commands(*args, **kwargs):
         BotCommand("create_sl", "Создание списка покупок"),
         BotCommand("watch_my_active_sls", "Вывод всех ваших списков покупок"),
         BotCommand("watch_my_last_sl", "Вывод вашего последнего списка покупок"),
+        BotCommand("get_my_friends", "Вывод вашего списка друзей"),
         BotCommand("get_my_id", "Вывод вашего id"),
         BotCommand("help", "Список и подробное описание команд")
     ])

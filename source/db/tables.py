@@ -4,7 +4,8 @@ import sqlalchemy as sa
 users = sa.Table(
     'users',
     metadata,
-    sa.Column('id', sa.BIGINT, primary_key=True)
+    sa.Column('id', sa.BIGINT, primary_key=True),
+    sa.Column('user_name', sa.TEXT)
 )
 
 shop_lists = sa.Table(

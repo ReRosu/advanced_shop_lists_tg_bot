@@ -16,13 +16,13 @@ class FriendsRep:
 
     # возвращает список id друзей
     @staticmethod
-    async def all_friends_by_id(_id: int) -> list[id]:
+    async def all_friends_by_id(_id: int) -> list[FriendsInDb]:
         q = tables.friends.select().where(tables.friends.c.user_id == _id)
         res = await db.fetch_all(q)
-        result_list = [FriendsInDb.parse_obj(d).friend_id for d in res]
+        result_list = [FriendsInDb.parse_obj(d) for d in res]
         q = tables.friends.select().where(tables.friends.c.friend_id == _id)
         res = await db.fetch_all(q)
-        result_list.extend([FriendsInDb.parse_obj(d).user_id for d in res])
+        result_list.extend([FriendsInDb.parse_obj(d) for d in res])
         return result_list
 
     @staticmethod

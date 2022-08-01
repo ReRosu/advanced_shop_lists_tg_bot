@@ -9,7 +9,7 @@ async def accept_kb() -> InlineKeyboardMarkup:
 
     kb_markup.insert(InlineKeyboardButton('Подтвердить', callback_data='accept'))
     kb_markup.insert(InlineKeyboardButton('Продолжить', callback_data='continue'))
-    kb_markup.insert(InlineKeyboardButton('Закрыть', callback_data='close'))
+    kb_markup.insert(InlineKeyboardButton('Отменить', callback_data='close'))
     return kb_markup
 
 
@@ -22,25 +22,6 @@ async def choosing_shop_list_kb(user_tg_id: int) -> InlineKeyboardMarkup:
         kb_markup.insert(InlineKeyboardButton(i.name))
         kb_markup.row()
 
-    kb_markup.insert(InlineKeyboardButton('Закрыть'))
-
-    return kb_markup
-
-
-async def choosing_friend_to_add_to_sl(user_tg_id: int) -> InlineKeyboardMarkup:
-    all_user_friends = await FriendsRep.all_friends_by_id(user_tg_id)
-
-    kb_markup = InlineKeyboardMarkup()
-
-    for i in all_user_friends:
-        if i.user_id == user_tg_id:
-            tmp_id = i.friend_id
-        else:
-            tmp_id = i.user_id
-        kb_markup.insert(InlineKeyboardButton(tmp_id))
-
-    kb_markup.insert(InlineKeyboardButton('Подтвердить'))
-    kb_markup.insert(InlineKeyboardButton('Продолжить'))
     kb_markup.insert(InlineKeyboardButton('Закрыть'))
 
     return kb_markup

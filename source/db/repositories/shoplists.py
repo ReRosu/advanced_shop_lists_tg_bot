@@ -38,11 +38,11 @@ class ShopListsRep:
         return ShopListInDb.parse_obj(res)
 
     @staticmethod
-    async def update_by_id(_id: int, update_shop_list: UpdateShopListInDb) -> ShopListInDb:
+    async def update_by_id(_id: int, update_shop_list: UpdateShopListInDb) -> Optional[ShopListInDb]:
         data_update = update_shop_list.dict(exclude_none = True)
         if not data_update:
             raise Exception('no data to update')
-        if not ShopListsRep.id_exists(_id):
+        if not await ShopListsRep.id_exists(_id):
             raise Exception('no shop_list with this id')
         q = tables.shop_lists.update().values(data_update).where(tables.shop_lists.c.id == _id).\
             returning(tables.shop_lists)

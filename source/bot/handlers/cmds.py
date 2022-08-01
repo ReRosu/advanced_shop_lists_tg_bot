@@ -123,7 +123,7 @@ async def adding_friends_to_shop_list(msg: types.Message, state=FSMContext):
 
 
 @dp.callback_query_handler(text="accept", state=CreateShopListStates.adding_friends)
-async def accept_friends_list(call: types.CallbackQuery):
+async def accept_friends(call: types.CallbackQuery):
     await call.message.reply('Друзья были прикреплены к списку.\n'
                              'Дайте название списку',
                              reply_markup=await inline.accept_kb())
@@ -131,12 +131,12 @@ async def accept_friends_list(call: types.CallbackQuery):
 
 
 @dp.callback_query_handler(text="continue", state=CreateShopListStates.adding_friends)
-async def continue_writing_shop_list(call: types.CallbackQuery):
+async def continue_adding_friends(call: types.CallbackQuery):
     await accept_shop_list(call)
 
 
 @dp.callback_query_handler(text='close', state=CreateShopListStates.adding_friends)
-async def close_writing_shop_list(call: types.CallbackQuery, state=FSMContext):
+async def close_adding_friends(call: types.CallbackQuery, state=FSMContext):
     await call.message.reply('Список покупок будет удален.')
     await state.reset_data()
     await state.finish()

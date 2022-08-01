@@ -76,8 +76,13 @@ async def create_shop_list(msg: types.Message):
 @dp.message_handler(state=CreateShopListStates.writing_shop_list)
 async def writing_shop_list(msg: types.Message, state=FSMContext):
     if msg.text[0] != '/':
+        data = await state.get_data()
+        if data.get('add_sl', False):
+            sl_data = data['add_sl']
+        else:
+            sl_data = []
         prepareted_msg = await jS.str_preparation(msg.text)
-        await state.update_data(add_sl=prepareted_msg)
+        await state.update_data(add_sl=sl_data.extend(prepareted_msg))
         await state.update_data(last_msg=msg)
         await msg.reply('В список покупок будут добавлены:\n' +
                         '\n'.join([f"{t['name']} - {t['volume']}" for t in prepareted_msg]),
@@ -88,7 +93,7 @@ async def writing_shop_list(msg: types.Message, state=FSMContext):
 async def accept_shop_list(call: types.CallbackQuery, state=FSMContext):
     msg = (await state.get_data())['last_msg']
     await msg.reply(f'Список покупок был сохранен, @{msg.from_user.username}\n',
-                             reply_markup=await reply.choosing_friend_to_add_to_sl(msg.from_user.id))
+                             reply_markup=await inline.choosing_friend_to_add_to_sl(msg.from_user.id))
     await CreateShopListStates.next()
 
 

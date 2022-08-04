@@ -1,5 +1,6 @@
 from aiogram import types
 from aiogram.dispatcher import FSMContext
+from aiogram.dispatcher.filters import Text
 
 import source.bot.bot
 from source.bot.bot import dp
@@ -14,6 +15,7 @@ from source.bot.keyboards import reply
 from source.db.repositories.friends import FriendsRep
 from source.db.repositories.shopliststousers import ShopListsToUsersRep
 from source.models.shoplisttouser import AddShopListToUserInDb
+from source.bot.bot import bot
 
 
 # 373740493
@@ -37,8 +39,9 @@ async def help(message: types.Message):
     <b>1. /create_sl - создание списка покупок </b> 
     <b>2. /watch_my_active_sls - вывод ваших активных списков покупок </b> 
     <b>3. /watch_my_last_sl - вывод вашего последнего списка покупок </b> 
-    <b>4. /get_my_id - вывод вашего id </b>
+    <b>4. /watch_active_sl_by_friends - просмотр активных списков покупок ваших друзей к которым прикреплены вы</b>
     <b>5. /get_my_friends - вывод всех ваших друзей</b>
+    <b>6. /get_my_id - вывод вашего id </b>
     <b>6. /help - список команд  </b>''')
 
 
@@ -56,8 +59,14 @@ async def get_my_friends(msg: types.Message):
 
 @dp.message_handler(commands=['watch_my_active_sls'])
 async def watch_my_active_shoplists(msg: types.Message):
-    shop_lists = ' '.join([str(i.dict()) for i in await ShopListsRep.all_by_user_id(msg.from_user.id)])
+    shop_lists = ' '.join([str(i.dict()) + '\n' for i in await ShopListsRep.all_by_user_id(msg.from_user.id)])
     await msg.reply(shop_lists)
+
+
+@dp.message_handler(commands=['watch_active_sl_by_friends'])
+async def watch_active_shop_lists_by_friends(msg: types.Message):
+    shoplists = '\n'.join([str((await ShopListsRep.by_id(x)).dict())+'\n' for x in await ShopListsToUsersRep.all_by_user_id()])
+    await msg.reply(shoplists)
 
 
 @dp.message_handler(commands=['watch_my_last_sl'])
@@ -81,11 +90,12 @@ async def writing_shop_list(msg: types.Message, state=FSMContext):
             sl_data = data['add_sl']
         else:
             sl_data = []
-        prepareted_msg = await jS.str_preparation(msg.text)
-        await state.update_data(add_sl=sl_data.extend(prepareted_msg))
+        prepareted_msg = (await jS.str_preparation(msg.text))
+        sl_data.extend(prepareted_msg)
         await state.update_data(last_msg=msg)
+        await state.update_data(add_sl=sl_data)
         await msg.reply('В список покупок будут добавлены:\n' +
-                        '\n'.join([f"{t['name']} - {t['volume']}" for t in prepareted_msg]),
+                        '\n'.join([f"{t['name']} - {t['volume']}" for t in sl_data]),
                         reply_markup=await inline.accept_kb())
 
 
@@ -93,7 +103,7 @@ async def writing_shop_list(msg: types.Message, state=FSMContext):
 async def accept_shop_list(call: types.CallbackQuery, state=FSMContext):
     msg = (await state.get_data())['last_msg']
     await msg.reply(f'Список покупок был сохранен, @{msg.from_user.username}\n',
-                             reply_markup=await inline.choosing_friend_to_add_to_sl(msg.from_user.id))
+                    reply_markup=await inline.choosing_friend_to_add_to_sl(msg.from_user.id))
     await CreateShopListStates.next()
 
 
@@ -109,23 +119,26 @@ async def close_writing_shop_list(call: types.CallbackQuery, state=FSMContext):
     await state.finish()
 
 
-@dp.message_handler(state=CreateShopListStates.adding_friends)
-async def adding_friends_to_shop_list(msg: types.Message, state=FSMContext):
+@dp.callback_query_handler(Text(startswith='fr_'), state=CreateShopListStates.adding_friends)
+async def adding_friend_to_shop_list(call: types.CallbackQuery, state=FSMContext):
     data = await state.get_data()
     if data.get('friends_to_add', False):
         friends_to_add = data['friends_to_add']
     else:
         friends_to_add = []
-    if msg.text.isdigit() and UsersRep.id_exists(int(msg.text)):
-        friends_to_add.append(int(msg.text))
+    friend_id = int(call.data.replace('fr_', ''))
+    if await UsersRep.id_exists(friend_id):
+        friends_to_add.append(friend_id)
 
     await state.update_data(friends_to_add=friends_to_add)
 
 
 @dp.callback_query_handler(text="accept", state=CreateShopListStates.adding_friends)
-async def accept_friends(call: types.CallbackQuery):
-    await call.message.reply('Друзья были прикреплены к списку.\n'
-                             'Дайте название списку',
+async def accept_friends(call: types.CallbackQuery, state=FSMContext):
+    await call.message.reply('\n'.join(['@'+(await UsersRep.by_id(x)).user_name
+                                        for x in
+                                        (await state.get_data())['friends_to_add']]) + '\nбыли прикреплены к списку.\n'
+                                                                                       'Дайте название списку',
                              reply_markup=await inline.accept_kb())
     await CreateShopListStates.next()
 
@@ -146,10 +159,11 @@ async def close_adding_friends(call: types.CallbackQuery, state=FSMContext):
 async def giving_name(msg: types.Message, state=FSMContext):
     await state.update_data(name=msg.text)
     data = await state.get_data()
-    sl_text = data['name'] + '\nСписок покупок:\n' + '\n'.join([f"{t['name']} - {t['volume']}" for t in data['add_sl']]) \
-              + '\nДрузья прикрепленные к списку покупок' \
-              + '\n'.join(['@' + str((await UsersRep.by_id(x.friend_id if x.user_id == msg.from_user.id else x.user_id)) \
-                                     .user_name) for x in data['friends_to_add']])
+    await state.update_data(last_msg=msg)
+    sl_text = data['name'] + '\nСписок покупок:\n' \
+              + '\n'.join([f"{t['name']} - {t['volume']}" for t in data['add_sl']]) \
+              + '\nДрузья прикрепленные к списку покупок\n' \
+              + '\n'.join(['@' + str((await UsersRep.by_id(x)).user_name) for x in data['friends_to_add']])
 
     await msg.reply(sl_text, reply_markup=await inline.accept_kb())
     await CreateShopListStates.next()
@@ -157,13 +171,18 @@ async def giving_name(msg: types.Message, state=FSMContext):
 
 @dp.callback_query_handler(text='accept', state=CreateShopListStates.checking_shop_list)
 async def save_shop_list(call: types.CallbackQuery, state=FSMContext):
-    data = state.get_data()
-    add_sl: AddShopListInDb = AddShopListInDb(shoplist=jS.shop_list_to_json(data['add_sl']),
-                                              creator_id=call.message.from_user.id, name=data['name'])
+    data: dict = await state.get_data()
+    shop_list = str(await jS.shop_list_to_json(data['add_sl']))
+    creator_id = int(data['last_msg'].from_user.id)
+    name = data['name']
+    add_sl: AddShopListInDb = AddShopListInDb(shop_list=shop_list,
+                                              creator_user_id=creator_id, name=name)
     sl = await ShopListsRep.add(add_sl)
     for i in data['friends_to_add']:
         friendship: AddShopListToUserInDb = AddShopListToUserInDb(shop_list_id=sl.id, user_id=i)
         await ShopListsToUsersRep.add(friendship)
+        await bot.send_message(i, 'вы были прикреплены к списку покупок от @' + data['last_msg'].from_user.username
+                               + ' с названием: ' + name)
 
-    await call.message.reply('Список покупок был добавлен. С помощью команды /watch_my_last_sl '
-                             'вы можете посмотреть последний созданный вами список покупок ')
+    await data['last_msg'].reply('Список покупок был добавлен. С помощью команды /watch_my_last_sl '
+                                 'вы можете посмотреть последний созданный вами список покупок ')

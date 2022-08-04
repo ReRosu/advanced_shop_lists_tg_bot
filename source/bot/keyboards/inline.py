@@ -2,6 +2,7 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 from source.db.repositories.shoplists import ShopListsRep
 from source.db.repositories.friends import FriendsRep
+from source.db.repositories.users import UsersRep
 
 
 async def accept_kb() -> InlineKeyboardMarkup:
@@ -37,7 +38,7 @@ async def choosing_friend_to_add_to_sl(user_tg_id: int) -> InlineKeyboardMarkup:
             tmp_id = i.friend_id
         else:
             tmp_id = i.user_id
-        kb_markup.insert(InlineKeyboardButton(str(tmp_id),callback_data='fr_'+str(tmp_id)))
+        kb_markup.insert(InlineKeyboardButton((await UsersRep.by_id(tmp_id)).user_name, callback_data='fr_'+str(tmp_id)))
         kb_markup.row()
 
     kb_markup.insert(InlineKeyboardButton('Подтвердить', callback_data='accept'))

@@ -28,3 +28,7 @@ async def add_items_to_shop_list(shop_list: list, items_to_add: list) -> list:
     result_list: list = [*shop_list, *items_to_add]
     return result_list
 
+
+async def from_json(json_shoplist: str) -> list:
+    result_shoplsit: list = json.loads(json_shoplist)
+    return result_shoplsit

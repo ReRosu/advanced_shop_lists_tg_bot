@@ -16,3 +16,8 @@ class ChangingShopListStates (StatesGroup):
 
 class AddingFriendStates (StatesGroup):
     writing_friend_id = State()
+
+
+class PostingPatch(StatesGroup):
+    writing_patch_text = State()
+

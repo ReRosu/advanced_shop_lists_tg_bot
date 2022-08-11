@@ -2,24 +2,71 @@ from aiogram import types
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
 
-import source.bot.bot
+from source.bot.bot import bot
 from source.bot.bot import dp
-from source.bot.states import CreateShopListStates
+from source.bot.bot import bot_cfg
+from source.bot.keyboards import inline
+from source.bot.keyboards import reply
+from source.bot.states import *
 from source.db.repositories.shoplists import ShopListsRep
 from source.db.repositories.users import UsersRep
 from source.models.shoplist import AddShopListInDb
-from source.models.user import AddUserInDb, UpdateUserInDb
-import source.services.jsonService as jS
-from source.bot.keyboards import inline
-from source.bot.keyboards import reply
+from source.models.user import AddUserInDb, UpdateUserInDb, UserInDb
 from source.db.repositories.friends import FriendsRep
 from source.db.repositories.shopliststousers import ShopListsToUsersRep
 from source.models.shoplisttouser import AddShopListToUserInDb
-from source.bot.bot import bot
+
+import source.services.jsonService as jS
+from source.services.preparetooutput import Prepare_shoplist
 
 
 # 373740493
 # 458183945
+
+@dp.message_handler(commands=['post_patch'])
+async def post_patch(msg: types.Message):
+    if msg.from_user.id == bot_cfg.tg_bot.admin_id:
+        await PostingPatch.writing_patch_text.set()
+        await msg.reply('write patch note', reply_markup=await inline.accept_kb())
+
+
+@dp.message_handler(state=PostingPatch.writing_patch_text)
+async def writing_patch(msg: types.Message, state=FSMContext):
+    data = await state.get_data()
+    if data.get('patch_note', False) is False:
+        patch_note = []
+    else:
+        patch_note = data['patch_note']
+
+    for item in msg.text.split('\n'):
+        patch_note.append('<b>- ' + item + '</b>')
+    await state.update_data(patch_note=patch_note)
+    await state.update_data(last_msg=msg)
+
+@dp.callback_query_handler(text="accept", state=PostingPatch.writing_patch_text)
+async def accept_shop_list(call: types.CallbackQuery, state=FSMContext):
+    data = await state.get_data()
+    await data['last_msg'].reply(f"patch note has been delivered, @{data['last_msg'].from_user.username}\n")
+
+    all_users = await UsersRep.all()
+    for user in all_users:
+        await bot.send_message(user.id, '\n'.join(data['patch_note']))
+
+    await state.reset_data()
+    await state.finish()
+
+
+@dp.callback_query_handler(text="continue", state=PostingPatch.writing_patch_text)
+async def continue_writing_shop_list(call: types.CallbackQuery, state=FSMContext):
+    await post_patch((await state.get_data())['last_msg'])
+
+
+@dp.callback_query_handler(text='close', state=PostingPatch.writing_patch_text)
+async def close_writing_shop_list(call: types.CallbackQuery, state=FSMContext):
+    await call.message.reply('patch note will be destroyed')
+    await state.reset_data()
+    await state.finish()
+
 
 @dp.message_handler(commands=['start'], state="*")
 async def start(message: types.Message):
@@ -29,8 +76,8 @@ async def start(message: types.Message):
     if (await UsersRep.by_id(message.from_user.id)).user_name is None:
         update_user: UpdateUserInDb = UpdateUserInDb(user_name=message.from_user.username)
         await UsersRep.update_by_id(message.from_user.id, update_user)
-    await message.answer('''Привет, этот бот поможет сделать поход в магазины удобнее для тебя и твоих друзей.
-    \nВведи команду /help чтобы увидеть что может бот.''')
+    await message.answer('Привет, этот бот поможет сделать поход в магазины удобнее для тебя и твоих друзей.'
+                         '\nВведи команду /help чтобы увидеть что может бот.', reply_markup=None)
 
 
 @dp.message_handler(commands=['help'], state='*')
@@ -59,20 +106,22 @@ async def get_my_friends(msg: types.Message):
 
 @dp.message_handler(commands=['watch_my_active_sls'])
 async def watch_my_active_shoplists(msg: types.Message):
-    shop_lists = ' '.join([str(i.dict()) + '\n' for i in await ShopListsRep.all_by_user_id(msg.from_user.id)])
+    shop_lists = ' '.join(
+        [(await Prepare_shoplist(i)) + '\n' for i in await ShopListsRep.all_by_user_id(msg.from_user.id)])
     await msg.reply(shop_lists)
 
 
 @dp.message_handler(commands=['watch_active_sl_by_friends'])
 async def watch_active_shop_lists_by_friends(msg: types.Message):
-    shoplists = '\n'.join([str((await ShopListsRep.by_id(x)).dict())+'\n' for x in await ShopListsToUsersRep.all_by_user_id()])
+    shoplists = '\n'.join([await Prepare_shoplist((await ShopListsRep.by_id(x))) + '\n' for x in
+                           await ShopListsToUsersRep.all_by_user_id()])
     await msg.reply(shoplists)
 
 
 @dp.message_handler(commands=['watch_my_last_sl'])
 async def watch_my_last_sl(msg: types.Message):
-    last_shop_list = (await ShopListsRep.all_by_user_id(msg.from_user.id))[-1]
-    await msg.reply(str(last_shop_list.dict()))
+    last_shop_list = (await Prepare_shoplist((await ShopListsRep.all_by_user_id(msg.from_user.id))[-1]))
+    await msg.reply(last_shop_list)
 
 
 @dp.message_handler(commands=['create_sl'])
@@ -135,7 +184,7 @@ async def adding_friend_to_shop_list(call: types.CallbackQuery, state=FSMContext
 
 @dp.callback_query_handler(text="accept", state=CreateShopListStates.adding_friends)
 async def accept_friends(call: types.CallbackQuery, state=FSMContext):
-    await call.message.reply('\n'.join(['@'+(await UsersRep.by_id(x)).user_name
+    await call.message.reply('\n'.join(['@' + (await UsersRep.by_id(x)).user_name
                                         for x in
                                         (await state.get_data())['friends_to_add']]) + '\nбыли прикреплены к списку.\n'
                                                                                        'Дайте название списку',
@@ -175,6 +224,7 @@ async def save_shop_list(call: types.CallbackQuery, state=FSMContext):
     shop_list = str(await jS.shop_list_to_json(data['add_sl']))
     creator_id = int(data['last_msg'].from_user.id)
     name = data['name']
+
     add_sl: AddShopListInDb = AddShopListInDb(shop_list=shop_list,
                                               creator_user_id=creator_id, name=name)
     sl = await ShopListsRep.add(add_sl)
@@ -186,3 +236,6 @@ async def save_shop_list(call: types.CallbackQuery, state=FSMContext):
 
     await data['last_msg'].reply('Список покупок был добавлен. С помощью команды /watch_my_last_sl '
                                  'вы можете посмотреть последний созданный вами список покупок ')
+
+    await state.reset_data()
+    await state.finish()

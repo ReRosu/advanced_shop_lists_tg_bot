@@ -43,6 +43,7 @@ async def writing_patch(msg: types.Message, state=FSMContext):
     await state.update_data(patch_note=patch_note)
     await state.update_data(last_msg=msg)
 
+
 @dp.callback_query_handler(text="accept", state=PostingPatch.writing_patch_text)
 async def accept_shop_list(call: types.CallbackQuery, state=FSMContext):
     data = await state.get_data()
@@ -66,6 +67,28 @@ async def close_writing_shop_list(call: types.CallbackQuery, state=FSMContext):
     await call.message.reply('patch note will be destroyed')
     await state.reset_data()
     await state.finish()
+
+
+@dp.message_handler(commands=['send_bug'])
+async def send_bug(msg: types.Message):
+    await msg.reply('Опишите баг и как его воспроизвести в одном сообщении.')
+    await SendingBug.writing_bug.set()
+
+
+@dp.message_handler(state=SendingBug.writing_bug)
+async def writing_bug(msg: types.Message, state=FSMContext):
+    pass
+
+
+@dp.message_handler(commands=['send_wish'])
+async def send_wish(msg: types.Message):
+    await msg.reply('Опишите ваши пожелания или претензии к боту в одном сообщении.')
+    await SendingWish.writing_wish.set()
+
+
+@dp.message_handler(state=SendingWish.writing_wish)
+async def writing_wish(msg: types.Message, state=FSMContext):
+    pass
 
 
 @dp.message_handler(commands=['start'], state="*")

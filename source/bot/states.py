@@ -21,3 +21,11 @@ class AddingFriendStates (StatesGroup):
 class PostingPatch(StatesGroup):
     writing_patch_text = State()
 
+
+class SendingBug(StatesGroup):
+    writing_bug = State()
+
+
+class SendingWish(StatesGroup):
+    writing_wish = State()
+

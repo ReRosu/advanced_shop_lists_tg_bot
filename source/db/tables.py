@@ -32,6 +32,24 @@ shop_lists_to_users = sa.Table(
     sa.Column('user_id', sa.BIGINT, sa.ForeignKey(users.columns.id, ondelete='CASCADE'), nullable=False)
 )
 
+bug_reports = sa.Table(
+    'bug_reports',
+    metadata,
+    sa.Column('id', sa.BIGINT, nullable=False),
+    sa.column('message', sa.TEXT, nullable=False),
+    sa.Column('user_id', sa.BIGINT, sa.ForeignKey(users.columns.id, ondelete='CASCADE'), nullable=False),
+    sa.Column('is_done', sa.BOOLEAN, nullable=False, default=False)
+)
+
+wishes = sa.Table(
+    'wishes',
+    metadata,
+    sa.Column('id', sa.BIGINT, nullable=False),
+    sa.column('message', sa.TEXT, nullable=False),
+    sa.Column('user_id', sa.BIGINT, sa.ForeignKey(users.columns.id, ondelete='CASCADE'), nullable=False),
+    sa.Column('is_done', sa.BOOLEAN, nullable=False, default=False)
+)
+
 
 def create_tables():
     metadata.create_all(engine, checkfirst=True)

@@ -8,16 +8,22 @@ from source.bot.bot import bot_cfg
 from source.bot.keyboards import inline
 from source.bot.keyboards import reply
 from source.bot.states import *
+
 from source.db.repositories.shoplists import ShopListsRep
 from source.db.repositories.users import UsersRep
-from source.models.shoplist import AddShopListInDb
-from source.models.user import AddUserInDb, UpdateUserInDb, UserInDb
 from source.db.repositories.friends import FriendsRep
 from source.db.repositories.shopliststousers import ShopListsToUsersRep
+from source.db.repositories.wishes import WishesRep
+from source.db.repositories.bugreports import BugReportsRep
+
+from source.models.shoplist import AddShopListInDb
+from source.models.user import AddUserInDb, UpdateUserInDb, UserInDb
 from source.models.shoplisttouser import AddShopListToUserInDb
+from source.models.wish import *
+from source.models.bugreport import *
 
 import source.services.jsonService as jS
-from source.services.preparetooutput import Prepare_shoplist
+from source.services.preparetooutput import *
 
 
 # 373740493
@@ -77,7 +83,11 @@ async def send_bug(msg: types.Message):
 
 @dp.message_handler(state=SendingBug.writing_bug)
 async def writing_bug(msg: types.Message, state=FSMContext):
-    pass
+    bug_report: AddBugReportInDb = AddBugReportInDb(msg.text, msg.from_user.id)
+    await BugReportsRep.add(bug_report)
+    await state.reset_data()
+    await state.finish()
+    await msg.reply('Ваш bug report был сохранен в базе')
 
 
 @dp.message_handler(commands=['send_wish'])
@@ -88,7 +98,41 @@ async def send_wish(msg: types.Message):
 
 @dp.message_handler(state=SendingWish.writing_wish)
 async def writing_wish(msg: types.Message, state=FSMContext):
-    pass
+    wish_report: AddWishInDb = AddWishInDb(msg.text, msg.from_user.id)
+    await WishesRep.add(wish_report)
+    await state.reset_data()
+    await state.finish()
+    await msg.reply('Ваши пожелания были сохранены в базу')
+
+
+@dp.message_handler(commands=['all_done_bug_reports'])
+async def all_done_bug_reports(msg: types.Message):
+    if msg.from_user.id == bot_cfg.tg_bot.admin_id:
+        bug_reports_str = 'Done bug reports:\n'+'\n'.join([await prepare_bug_report(x) for x in (await BugReportsRep.all_done())])
+        await msg.reply(bug_reports_str)
+
+
+@dp.message_handler(commands=['all_not_done_bug_reports'])
+async def all_not_done_bug_reports(msg: types.Message):
+    if msg.from_user.id == bot_cfg.tg_bot.admin_id:
+        bug_reports_str = 'Not done bug reports:\n'+'\n'.join([await prepare_bug_report(x) for x in (await BugReportsRep.all_not_done())])
+        await msg.reply(bug_reports_str)
+
+
+@dp.message_handler(commands=['all_done_wish_reports'])
+async def all_done_bug_reports(msg: types.Message):
+    if msg.from_user.id == bot_cfg.tg_bot.admin_id:
+        bug_reports_str = 'Done wish reports:\n'+'\n'.join([await prepare_wish_report(x)
+                                                            for x in (await WishesRep.all_done())])
+        await msg.reply(bug_reports_str)
+
+
+@dp.message_handler(commands=['all_not_done_wish_reports'])
+async def all_not_done_bug_reports(msg: types.Message):
+    if msg.from_user.id == bot_cfg.tg_bot.admin_id:
+        bug_reports_str = 'Not done wish reports:\n'+'\n'.join([await prepare_wish_report(x)
+                                                                for x in (await WishesRep.all_not_done())])
+        await msg.reply(bug_reports_str)
 
 
 @dp.message_handler(commands=['start'], state="*")
@@ -130,20 +174,20 @@ async def get_my_friends(msg: types.Message):
 @dp.message_handler(commands=['watch_my_active_sls'])
 async def watch_my_active_shoplists(msg: types.Message):
     shop_lists = ' '.join(
-        [(await Prepare_shoplist(i)) + '\n' for i in await ShopListsRep.all_by_user_id(msg.from_user.id)])
+        [(await prepare_shoplist(i)) + '\n' for i in await ShopListsRep.all_by_user_id(msg.from_user.id)])
     await msg.reply(shop_lists)
 
 
 @dp.message_handler(commands=['watch_active_sl_by_friends'])
 async def watch_active_shop_lists_by_friends(msg: types.Message):
-    shoplists = '\n'.join([await Prepare_shoplist((await ShopListsRep.by_id(x))) + '\n' for x in
+    shoplists = '\n'.join([await prepare_shoplist((await ShopListsRep.by_id(x))) + '\n' for x in
                            await ShopListsToUsersRep.all_by_user_id()])
     await msg.reply(shoplists)
 
 
 @dp.message_handler(commands=['watch_my_last_sl'])
 async def watch_my_last_sl(msg: types.Message):
-    last_shop_list = (await Prepare_shoplist((await ShopListsRep.all_by_user_id(msg.from_user.id))[-1]))
+    last_shop_list = (await prepare_shoplist((await ShopListsRep.all_by_user_id(msg.from_user.id))[-1]))
     await msg.reply(last_shop_list)
 
 

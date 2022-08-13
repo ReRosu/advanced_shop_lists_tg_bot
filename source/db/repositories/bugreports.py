@@ -21,13 +21,13 @@ class BugReportsRep:
 
     @staticmethod
     async def all_done() -> list[BugReportInDb]:
-        q = tables.bug_reports.select().where(tables.bug_reports.c.is_done)
+        q = tables.bug_reports.select().where(tables.bug_reports.c.is_done == True)
         res = await db.fetch_all(q)
         return [BugReportInDb.parse_obj(d) for d in res]
 
     @staticmethod
     async def all_not_done() -> list[BugReportInDb]:
-        q = tables.bug_reports.select().where(not tables.bug_reports.c.is_done)
+        q = tables.bug_reports.select().where(tables.bug_reports.c.is_done == False)
         res = await db.fetch_all(q)
         return [BugReportInDb.parse_obj(d) for d in res]
 
@@ -39,6 +39,7 @@ class BugReportsRep:
 
     @staticmethod
     async def all_done_by_user_id(user_id: int) -> list[BugReportInDb]:
-        q = tables.bug_reports.select().where(tables.bug_reports.c.user_id == user_id and tables.bug_reports.c.is_done)
+        q = tables.bug_reports.select().where(tables.bug_reports.c.user_id == user_id and
+                                              tables.bug_reports.c.is_done == True)
         res = await db.fetch_all(q)
         return [BugReportInDb.parse_obj(d) for d in res]

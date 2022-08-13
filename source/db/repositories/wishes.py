@@ -21,13 +21,13 @@ class WishesRep:
 
     @staticmethod
     async def all_done() -> list[WishInDb]:
-        q = tables.wishes.select().where(tables.wishes.c.is_done)
+        q = tables.wishes.select().where(tables.wishes.c.is_done == True)
         res = await db.fetch_all(q)
         return [WishInDb.parse_obj(d) for d in res]
 
     @staticmethod
     async def all_not_done() -> list[WishInDb]:
-        q = tables.wishes.select().where(not tables.wishes.c.is_done)
+        q = tables.wishes.select().where(tables.wishes.c.is_done == False)
         res = await db.fetch_all(q)
         return [WishInDb.parse_obj(d) for d in res]
 
@@ -39,6 +39,6 @@ class WishesRep:
 
     @staticmethod
     async def all_done_by_user_id(user_id: int) -> list[WishInDb]:
-        q = tables.wishes.select().where(tables.wishes.c.user_id == user_id and tables.wishes.c.is_done)
+        q = tables.wishes.select().where(tables.wishes.c.user_id == user_id and tables.wishes.c.is_done == True)
         res = await db.fetch_all(q)
         return [WishInDb.parse_obj(d) for d in res]

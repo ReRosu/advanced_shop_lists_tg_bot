@@ -10,7 +10,7 @@ from source.models.bugreport import BugReportInDb
 
 
 async def prepare_shoplist(shoplist: ShopListInDb) -> str:
-    result_str: str = shoplist.name + '\nСписок покупок:\n' + \
+    result_str: str = shoplist.name + '\nСоздатель списка: @' + (await UsersRep.by_id(shoplist.creator_user_id)).user_name + '\nСписок покупок:\n' + \
                       '\n'.join([f"{item['name']} - {item['volume']}"
                                  for item in (await from_json(shoplist.shop_list))]) + \
                       '\nДрузья прикрепленные к списку покупок:\n' + \
@@ -20,14 +20,14 @@ async def prepare_shoplist(shoplist: ShopListInDb) -> str:
 
 
 async def prepare_bug_report(bug_report: BugReportInDb):
-    result_str: str = '<b>Bug report id:</b> ' + str(bug_report.id) + '\nUser: @' + \
-                      (await UsersRep.by_id(bug_report.user_id)).user_name + '\n\nBug report message:\n' \
+    result_str: str = '<b>Bug report id:</b> ' + str(bug_report.id) + '\n<b>User: @' + \
+                      (await UsersRep.by_id(bug_report.user_id)).user_name + '</b>\n\n<b>Bug report message:</b>\n' \
                       + bug_report.message
     return result_str
 
 
 async def prepare_wish_report(wish_report: WishInDb):
-    result_str: str = '<b>Wish report id:</b> ' + str(wish_report.id) + '\nUser: @' + \
-                      (await UsersRep.by_id(wish_report.user_id)).user_name + '\n\nBug report message:\n\n' \
+    result_str: str = '<b>Wish report id:</b> ' + str(wish_report.id) + '\n<b>User: @' + \
+                      (await UsersRep.by_id(wish_report.user_id)).user_name + '</b>\n\n<b>Wish report message:</b>\n\n'\
                       + wish_report.message
     return result_str

@@ -15,6 +15,7 @@ from source.db.repositories.friends import FriendsRep
 from source.db.repositories.shopliststousers import ShopListsToUsersRep
 from source.db.repositories.wishes import WishesRep
 from source.db.repositories.bugreports import BugReportsRep
+from source.db.repositories.friendrequests import FriendRequestsRep
 
 from source.models.shoplist import AddShopListInDb
 from source.models.user import AddUserInDb, UpdateUserInDb, UserInDb
@@ -159,7 +160,8 @@ async def help(message: types.Message):
     <b>4. /get_my_friends - вывод всех ваших друзей</b>
     <b>5. /get_my_id - вывод вашего id </b>
     <b>7  /add_friend - добавление друга по id. </b>
-    <b>6. /help - список команд  </b>''')
+    <b>8. /get_my_friend_requests - просмотр ваших заявок в друзья. </b>
+    <b>9. /help - список команд  </b>''')
 
 
 @dp.message_handler(commands=['get_my_id'])
@@ -172,6 +174,15 @@ async def get_my_friends(msg: types.Message):
     await msg.reply(f"Список ваших друзей, {msg.from_user.full_name}:\n" + "\n".join(
         ['@' + str((await UsersRep.by_id(x.friend_id if x.user_id == msg.from_user.id else x.user_id)).user_name)
          for x in await FriendsRep.all_friends_by_id(msg.from_user.id)]))
+
+
+@dp.message_handler(commands=['get_my_friend_requests'])
+async def get_my_friend_requests(msg: types.Message):
+    friend_requests = await FriendRequestsRep.all_by_user_id(msg.from_user.id)
+    ans_s = '\n'.join(['заявка в друзья от @' +
+                       (await UsersRep.by_id(req.first_id if req.first_id != msg.from_user.id else req.second_id))
+                      .user_name for req in friend_requests])
+    await msg.reply(ans_s)
 
 
 @dp.message_handler(commands=['add_friend'])
@@ -187,7 +198,7 @@ async def adding_friend(msg: types.Message):
         if UsersRep.id_exists(_id):
             await bot.send_message(_id, 'Вас хочет добавить в друзья '
                                    + (await UsersRep.by_id(msg.from_user.id)).user_name)
-            
+
 
 
 @dp.message_handler(commands=['watch_my_active_sls'])

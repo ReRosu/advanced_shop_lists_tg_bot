@@ -26,7 +26,7 @@ class FriendRequestsRep:
 
     @staticmethod
     async def all_by_user_id(user_id: int) -> list[FriendRequestInDb]:
-        q = tables.friend_requests.select.where(tables.friend_requests.c.first_id == user_id
+        q = tables.friend_requests.select().where(tables.friend_requests.c.first_id == user_id
                                                 or tables.friend_requests.c.second_id == user_id)
         res = await db.fetch_all(q)
         return [FriendRequestInDb.parse_obj(x) for x in res]

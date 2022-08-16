@@ -3,6 +3,7 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from source.db.repositories.shoplists import ShopListsRep
 from source.db.repositories.friends import FriendsRep
 from source.db.repositories.users import UsersRep
+from source.db.repositories.friendrequests import FriendRequestsRep
 
 
 async def accept_kb() -> InlineKeyboardMarkup:
@@ -44,5 +45,19 @@ async def choosing_friend_to_add_to_sl(user_tg_id: int) -> InlineKeyboardMarkup:
     kb_markup.insert(InlineKeyboardButton('Подтвердить', callback_data='accept'))
     kb_markup.insert(InlineKeyboardButton('Продолжить', callback_data='continue'))
     kb_markup.insert(InlineKeyboardButton('Закрыть', callback_data='close'))
+
+    return kb_markup
+
+
+async def choosing_friend_request(user_id: int) -> InlineKeyboardMarkup:
+    friend_request = await FriendRequestsRep.all_by_user_id(user_id)
+
+    kb_markup = InlineKeyboardMarkup()
+
+    for req in friend_request:
+        fr_id = req.first_id if req.first_id != user_id else req.second_id
+        kb_markup.insert(InlineKeyboardButton('User @' + (await UsersRep.by_id(fr_id)).user_name,
+                                              callback_data='req_'+str(fr_id)))
+        kb_markup.row()
 
     return kb_markup

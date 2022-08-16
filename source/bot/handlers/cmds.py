@@ -211,8 +211,6 @@ async def adding_friend(msg: types.Message, state=FSMContext):
         await msg.reply('id содержит только цифры')
 
 
-
-
 @dp.message_handler(commands=['watch_my_active_sls'])
 async def watch_my_active_shoplists(msg: types.Message):
     shop_lists_by_user = await ShopListsRep.all_by_user_id(msg.from_user.id)

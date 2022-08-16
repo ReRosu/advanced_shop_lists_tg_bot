@@ -65,7 +65,19 @@ async def choosing_friend_request(user_id: int) -> InlineKeyboardMarkup:
     for req in friend_request:
         fr_id = req.first_id if req.first_id != user_id else req.second_id
         kb_markup.insert(InlineKeyboardButton('User @' + (await UsersRep.by_id(fr_id)).user_name,
-                                              callback_data='req_'+str(fr_id) + '_' + str(req.id)))
+                                              callback_data='req_' + str(req.id)))
         kb_markup.row()
 
     return kb_markup
+
+
+async def choose_shoplist_by_id(user_id: int) -> InlineKeyboardMarkup:
+    kb_markup = InlineKeyboardMarkup()
+
+    shoplists = await ShopListsRep.all_by_user_id(user_id)
+
+    for sl in shoplists:
+        kb_markup.insert(InlineKeyboardButton('Shoplist ' + sl.name, callback_data='sl_'+str(sl.id)))
+
+    return kb_markup
+

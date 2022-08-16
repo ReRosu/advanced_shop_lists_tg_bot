@@ -183,23 +183,25 @@ async def get_my_friends(msg: types.Message):
 @dp.message_handler(commands=['get_my_friend_requests'])
 async def get_my_friend_requests(msg: types.Message, state=FSMContext):
     await msg.reply('Ваши заявки в друзья:', reply_markup=await choosing_friend_request(msg.from_user.id))
-    await state.update_data(last_msg=msg)
+    await state.update_data(user_id=msg.from_user.id)
     await WithFriendRequest.watch_friend_request.set()
 
 
 @dp.callback_query_handler(Text(startswith='req_'), state=WithFriendRequest.watch_friend_request)
 async def choose_request(call: types.CallbackQuery, state=FSMContext):
     data = await state.get_data()
-    await data['last_msg'].reply('.', reply_markup=await accept_close_kb())
-    fr_id, req_id = map(int, call.data[4:].split('_'))
+    await bot.send_message(data['user_id'], '.', reply_markup=await accept_close_kb())
+    fr_req = await FriendRequestsRep.by_id(int(call.data[4:]))
+    fr_id = fr_req.first_id if fr_req.first_id != data['user_id'] else fr_req.second_id
     await state.update_data(friend_id=fr_id)
-    await state.update_data(req_id=req_id)
+    await state.update_data(req_id=fr_req.id)
 
 
 @dp.callback_query_handler(text='accept', state=WithFriendRequest.watch_friend_request)
 async def accept_request(call: types.CallbackQuery, state=FSMContext):
     data = await state.get_data()
-    await data['last_msg'].reply('@' + (await UsersRep.by_id(data['friend_id'])).user_name + ' теперь ваш друг')
+    await bot.send_message(data['user_id'], '@' + (await UsersRep.by_id(data['friend_id'])).user_name
+                                            + ' теперь ваш друг')
     await FriendRequestsRep.delete_by_id(data['req_id'])
     await FriendsRep.add(AddFriendInDb(user_id=data['last_msg'].from_user.id, friend_id=data['friend_id']))
 

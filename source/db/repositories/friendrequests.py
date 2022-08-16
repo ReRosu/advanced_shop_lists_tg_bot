@@ -13,6 +13,12 @@ class FriendRequestsRep:
         return FriendRequestInDb.parse_obj(res)
 
     @staticmethod
+    async def by_id(_id) -> FriendRequestInDb:
+        q = tables.friend_requests.select().where(tables.friend_requests.c.id == _id)
+        res = await db.fetch_one(q)
+        return FriendRequestInDb.parse_obj(res) if res else None
+
+    @staticmethod
     async def id_exists(_id: int) -> bool:
         q = select(exists().where(tables.friend_requests.c.id == _id))
         res = await db.fetch_one(q)

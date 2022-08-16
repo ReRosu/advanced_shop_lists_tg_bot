@@ -22,6 +22,7 @@ from source.models.user import AddUserInDb, UpdateUserInDb, UserInDb
 from source.models.shoplisttouser import AddShopListToUserInDb
 from source.models.wish import *
 from source.models.bugreport import *
+from source.models.friend_request import AddFriendRequestInDb
 
 import source.services.jsonService as jS
 from source.services.preparetooutput import *
@@ -139,7 +140,8 @@ async def all_not_done_bug_reports(msg: types.Message):
 
 
 @dp.message_handler(commands=['start'], state="*")
-async def start(message: types.Message):
+async def start(message: types.Message, state=FSMContext):
+    await state.finish()
     if not await UsersRep.by_id(message.from_user.id):
         add_usr: AddUserInDb = AddUserInDb(id=message.from_user.id, user_name=message.from_user.username)
         await UsersRep.add(add_usr)
@@ -151,7 +153,8 @@ async def start(message: types.Message):
 
 
 @dp.message_handler(commands=['help'], state='*')
-async def help(message: types.Message):
+async def help(message: types.Message, state=FSMContext):
+    await state.finish()
     await message.reply('''Команды бота: \n 
     <b>0. /create_sl - создание списка покупок </b> 
     <b>1. /watch_my_active_sls - вывод ваших активных списков покупок </b> 
@@ -192,12 +195,21 @@ async def add_friend(msg: types.Message):
 
 
 @dp.message_handler(state=AddingFriendStates.writing_friend_id)
-async def adding_friend(msg: types.Message):
+async def adding_friend(msg: types.Message, state=FSMContext):
     if msg.text.isdigit():
         _id = int(msg.text)
         if UsersRep.id_exists(_id):
             await bot.send_message(_id, 'Вас хочет добавить в друзья '
-                                   + (await UsersRep.by_id(msg.from_user.id)).user_name)
+                                   + (await UsersRep.by_id(msg.from_user.id)).user_name
+                                   + '\nпроверьте ваши заявки в друзья с помощью /get_my_friend_requests')
+            await FriendRequestsRep.add(AddFriendRequestInDb(first_id=msg.from_user.id,second_id=_id))
+            await msg.reply('Заявка в друзья была отправлена')
+            await state.finish()
+        else:
+            await msg.reply('Пользователя с таким id не существует')
+    else:
+        await msg.reply('id содержит только цифры')
+
 
 
 

@@ -25,6 +25,14 @@ friends = sa.Table(
     sa.Column('friend_id', sa.BIGINT, sa.ForeignKey(users.columns.id, ondelete='CASCADE'), nullable=False)
 )
 
+friend_requests = sa.Table(
+    'friend_requests',
+    metadata,
+    sa.Column('id', sa.BIGINT, nullable=False),
+    sa.Column('first_id', sa.BIGINT, sa.ForeignKey(users.columns.id, ondelete='CASCADE'), nullable=False),
+    sa.Column('second_id', sa.BIGINT, sa.ForeignKey(users.columns.id, ondelete='CASCADE'), nullable=False)
+)
+
 shop_lists_to_users = sa.Table(
     'shop_lists_to_users',
     metadata,

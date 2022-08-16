@@ -152,12 +152,13 @@ async def start(message: types.Message):
 @dp.message_handler(commands=['help'], state='*')
 async def help(message: types.Message):
     await message.reply('''Команды бота: \n 
-    <b>1. /create_sl - создание списка покупок </b> 
-    <b>2. /watch_my_active_sls - вывод ваших активных списков покупок </b> 
-    <b>3. /watch_my_last_sl - вывод вашего последнего списка покупок </b> 
-    <b>4. /watch_active_sl_by_friends - просмотр активных списков покупок ваших друзей к которым прикреплены вы</b>
-    <b>5. /get_my_friends - вывод всех ваших друзей</b>
-    <b>6. /get_my_id - вывод вашего id </b>
+    <b>0. /create_sl - создание списка покупок </b> 
+    <b>1. /watch_my_active_sls - вывод ваших активных списков покупок </b> 
+    <b>2. /watch_my_last_sl - вывод вашего последнего списка покупок </b> 
+    <b>3. /watch_active_sl_by_friends - просмотр активных списков покупок ваших друзей к которым прикреплены вы</b>
+    <b>4. /get_my_friends - вывод всех ваших друзей</b>
+    <b>5. /get_my_id - вывод вашего id </b>
+    <b>7  /add_friend - добавление друга по id. </b>
     <b>6. /help - список команд  </b>''')
 
 
@@ -171,6 +172,22 @@ async def get_my_friends(msg: types.Message):
     await msg.reply(f"Список ваших друзей, {msg.from_user.full_name}:\n" + "\n".join(
         ['@' + str((await UsersRep.by_id(x.friend_id if x.user_id == msg.from_user.id else x.user_id)).user_name)
          for x in await FriendsRep.all_friends_by_id(msg.from_user.id)]))
+
+
+@dp.message_handler(commands=['add_friend'])
+async def add_friend(msg: types.Message):
+    await msg.reply('Напишите id человека, он может посмотреть свой id с помощью команды /get_my_id')
+    await AddingFriendStates.writing_friend_id.set()
+
+
+@dp.message_handler(state=AddingFriendStates.writing_friend_id)
+async def adding_friend(msg: types.Message):
+    if msg.text.isdigit():
+        _id = int(msg.text)
+        if UsersRep.id_exists(_id):
+            await bot.send_message(_id, 'Вас хочет добавить в друзья '
+                                   + (await UsersRep.by_id(msg.from_user.id)).user_name)
+            
 
 
 @dp.message_handler(commands=['watch_my_active_sls'])
@@ -306,7 +323,7 @@ async def giving_name(msg: types.Message, state=FSMContext):
 
     if data.get('friends_to_add', False):
         sl_text = sl_text + '\nДрузья прикрепленные к списку покупок\n' \
-              + '\n'.join(['@' + str((await UsersRep.by_id(x)).user_name) for x in data['friends_to_add']])
+                  + '\n'.join(['@' + str((await UsersRep.by_id(x)).user_name) for x in data['friends_to_add']])
 
     await msg.reply(sl_text, reply_markup=await inline.accept_kb())
     await CreateShopListStates.next()

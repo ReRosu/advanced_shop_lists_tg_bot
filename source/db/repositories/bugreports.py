@@ -3,7 +3,7 @@ from sqlalchemy import select, exists
 
 from source.db import tables
 from source.db.base import db
-from source.models.bugreport import BugReportInDb, AddBugReportInDb
+from source.models.bugreport import *
 
 
 class BugReportsRep:

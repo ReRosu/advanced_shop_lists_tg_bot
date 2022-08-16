@@ -44,3 +44,4 @@ class FriendsRep:
             res = await db.execute(q)
             return res
 
+

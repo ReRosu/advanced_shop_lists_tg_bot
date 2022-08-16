@@ -5,7 +5,7 @@ from aiogram.dispatcher.filters import Text
 from source.bot.bot import bot
 from source.bot.bot import dp
 from source.bot.bot import bot_cfg
-from source.bot.keyboards import inline
+from source.bot.keyboards.inline import *
 from source.bot.keyboards import reply
 from source.bot.states import *
 
@@ -23,6 +23,7 @@ from source.models.shoplisttouser import AddShopListToUserInDb
 from source.models.wish import *
 from source.models.bugreport import *
 from source.models.friend_request import AddFriendRequestInDb
+from source.models.friends import AddFriendInDb
 
 import source.services.jsonService as jS
 from source.services.preparetooutput import *
@@ -180,12 +181,27 @@ async def get_my_friends(msg: types.Message):
 
 
 @dp.message_handler(commands=['get_my_friend_requests'])
-async def get_my_friend_requests(msg: types.Message):
-    friend_requests = await FriendRequestsRep.all_by_user_id(msg.from_user.id)
-    ans_s = '\n'.join(['заявка в друзья от @' +
-                       (await UsersRep.by_id(req.first_id if req.first_id != msg.from_user.id else req.second_id))
-                      .user_name for req in friend_requests])
-    await msg.reply(ans_s)
+async def get_my_friend_requests(msg: types.Message, state=FSMContext):
+    await msg.reply('Ваши заявки в друзья:', reply_markup=await choosing_friend_request(msg.from_user.id))
+    await state.update_data(last_msg=msg)
+    await WithFriendRequest.watch_friend_request.set()
+
+
+@dp.callback_query_handler(Text(startswith='req_'), state=WithFriendRequest.watch_friend_request)
+async def choose_request(call: types.CallbackQuery, state=FSMContext):
+    data = await state.get_data()
+    await data['last_msg'].reply('.', reply_markup=await accept_close_kb())
+    fr_id, req_id = map(int, call.data[4:].split('_'))
+    await state.update_data(friend_id=fr_id)
+    await state.update_data(req_id=req_id)
+
+
+@dp.callback_query_handler(text='accept', state=WithFriendRequest.watch_friend_request)
+async def accept_request(call: types.CallbackQuery, state=FSMContext):
+    data = await state.get_data()
+    await data['last_msg'].reply('@' + (await UsersRep.by_id(data['friend_id'])).user_name + ' теперь ваш друг')
+    await FriendRequestsRep.delete_by_id(data['req_id'])
+    await FriendsRep.add(AddFriendInDb(user_id=data['last_msg'].from_user.id, friend_id=data['friend_id']))
 
 
 @dp.message_handler(commands=['add_friend'])
@@ -202,7 +218,7 @@ async def adding_friend(msg: types.Message, state=FSMContext):
             await bot.send_message(_id, 'Вас хочет добавить в друзья '
                                    + (await UsersRep.by_id(msg.from_user.id)).user_name
                                    + '\nпроверьте ваши заявки в друзья с помощью /get_my_friend_requests')
-            await FriendRequestsRep.add(AddFriendRequestInDb(first_id=msg.from_user.id,second_id=_id))
+            await FriendRequestsRep.add(AddFriendRequestInDb(first_id=msg.from_user.id, second_id=_id))
             await msg.reply('Заявка в друзья была отправлена')
             await state.finish()
         else:

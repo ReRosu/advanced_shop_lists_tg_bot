@@ -18,6 +18,10 @@ class AddingFriendStates (StatesGroup):
     writing_friend_id = State()
 
 
+class WithFriendRequest(StatesGroup):
+    watch_friend_request = State()
+
+
 class PostingPatch(StatesGroup):
     writing_patch_text = State()
 

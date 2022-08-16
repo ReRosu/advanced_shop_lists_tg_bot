@@ -15,6 +15,14 @@ async def accept_kb() -> InlineKeyboardMarkup:
     return kb_markup
 
 
+async def accept_close_kb() -> InlineKeyboardMarkup:
+    kb_markup = InlineKeyboardMarkup()
+
+    kb_markup.insert(InlineKeyboardButton('Подтвердить', callback_data='accept'))
+    kb_markup.insert(InlineKeyboardButton('Отменить', callback_data='close'))
+    return kb_markup
+
+
 async def choosing_shop_list_kb(user_tg_id: int) -> InlineKeyboardMarkup:
     all_active_users_sls = [x for x in await ShopListsRep.all_by_user_id(user_tg_id) if not x.is_over]
 
@@ -57,7 +65,7 @@ async def choosing_friend_request(user_id: int) -> InlineKeyboardMarkup:
     for req in friend_request:
         fr_id = req.first_id if req.first_id != user_id else req.second_id
         kb_markup.insert(InlineKeyboardButton('User @' + (await UsersRep.by_id(fr_id)).user_name,
-                                              callback_data='req_'+str(fr_id)))
+                                              callback_data='req_'+str(fr_id) + '_' + str(req.id)))
         kb_markup.row()
 
     return kb_markup
